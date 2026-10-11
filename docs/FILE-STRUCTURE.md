@@ -1,0 +1,38 @@
+# File Structure
+
+```
+AmIArtificiallyIntelligent?/
+├── AmIArtificiallyIntelligent?.md   Project brief, assumptions and changelog
+├── README.md                        At-a-glance page: screenshots and links
+├── Package.swift                    Swift package: targets and platforms
+├── scripts/
+│   └── build-app.sh                 Builds "Am I Artificially Intelligent.app" into build/
+├── Sources/
+│   ├── QuizCore/                    Pure logic, no UI
+│   │   ├── Model.swift              Category, Family, Option, Format, Response, Question, Answer
+│   │   ├── QuestionBank.swift       The 40 questions, plus draw() that picks 20 per run
+│   │   ├── TextScorer.swift         Heuristics that score typed answers 0–3
+│   │   ├── Scoring.swift            Scorer, Verdict bands, QuizResult
+│   │   └── QuizSession.swift        One run: drawn questions and answers so far
+│   ├── QuizUI/                      SwiftUI views shared by the app and the screenshot renderer
+│   │   ├── Theme.swift              Palette (light/dark), category colors, chip and button styles
+│   │   ├── Preferences.swift        UserDefaults keys, Appearance
+│   │   ├── ContentView.swift        Main window: welcome → questions → result; feedback tab
+│   │   ├── QuizViews.swift          Welcome, Result, meter and bars
+│   │   ├── QuestionView.swift       Question screen for all four formats
+│   │   ├── SettingsView.swift       Settings window (⌘,)
+│   │   └── Feedback.swift           Feedback sheet and local JSON-lines store
+│   ├── AmIArtificiallyIntelligent/
+│   │   └── App.swift                @main app: window, Settings scene, appearance
+│   └── ScreenshotRenderer/
+│       └── main.swift               Renders README screenshots with ImageRenderer
+├── Tests/QuizCoreTests/
+│   └── QuizCoreTests.swift          Bank, draw, points, text scorer, scorer and session tests
+└── docs/
+    ├── INSTRUCTIONS.md              Setup, run, use
+    ├── SYSTEM-DESIGN.md             Architecture and decisions
+    ├── FILE-STRUCTURE.md            This file
+    └── images/                      Generated screenshots (light and dark)
+```
+
+`build/` and `.build/` are build output and are git-ignored.
