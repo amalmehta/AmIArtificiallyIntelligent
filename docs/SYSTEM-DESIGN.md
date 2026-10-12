@@ -54,6 +54,7 @@ flowchart TB
 | **QuizUI / QuestionView** | Draws the current format: choice rows, checkbox rows with Continue, a 1–5 scale, or a text field. Number-key shortcuts, plus a guard so a double press can't answer the next question too. |
 | **QuizUI / Theme** | Explicit light and dark palettes, plus category colors by family. Colors are chosen in code rather than from system colors so `ImageRenderer` reproduces them exactly. |
 | **ScreenshotRenderer** | Renders the real views to PNG with fixed answers, for the README. |
+| **IconRenderer** | Draws the app icon in SwiftUI: a green human half with a brain profile, a purple machine half with a chip, and a "?" badge. It writes every `.iconset` size, and `make-icon.sh` packs them into `Resources/AppIcon.icns`. |
 
 ## Main flows
 
@@ -91,7 +92,7 @@ When speed scoring is on, each non-text question's maximum becomes 4, with +1 fo
 - **Pool of 40, draw 20, stratified by format and category.** Repeat runs feel fresh while every run keeps the same format mix and touches every category, so the breakdown is always complete.
 - **One 0–3 scale for every format.** Formats are directly comparable, and the overall percentage isn't skewed by multi-select questions with many options.
 - **Speed tell skips typed answers.** You can't type fast enough for it to mean anything, and paste-speed is not the point.
-- **SwiftPM, not an Xcode project.** Builds and tests from the command line. `build-app.sh` assembles the `.app` bundle by hand. The trade-off is no asset catalog, so there's no custom app icon yet.
+- **SwiftPM, not an Xcode project.** Builds and tests from the command line. `build-app.sh` assembles the `.app` bundle by hand. With no asset catalog, the icon is drawn in code and committed as a ready-made `.icns`, so building doesn't need to redraw it.
 - **Views split into a library** (`QuizUI`) so the screenshot renderer uses the exact same views as the app.
 - **Explicit palettes per color scheme**, rather than dynamic system colors, so offline renders match the app. Category colors share a hue per family: Thinking is blue and teal, Heart is red, orange and amber, Machine Tells is violet and magenta.
 
@@ -112,6 +113,6 @@ UI was checked by rendering every screen in light and dark (`ScreenshotRenderer`
 
 - Free-text scoring is keyword-based and easy to game. That's on purpose.
 - Results aren't saved, and there's no history or sharing.
-- No custom app icon. The bundle is ad-hoc signed, not notarized.
+- The bundle is ad-hoc signed, not notarized.
 - The question pool is fixed in code. Adding questions means editing `QuestionBank.swift`.
 - English only.

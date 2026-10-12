@@ -31,6 +31,14 @@ swift run AmIArtificiallyIntelligent
 swift test
 ```
 
+## Redraw the app icon
+
+```bash
+./scripts/make-icon.sh
+```
+
+Draws the icon in SwiftUI (`Sources/IconRenderer`), writes `Resources/AppIcon.icns` and `docs/images/icon.png`. `build-app.sh` copies the `.icns` into the bundle. If Finder or the Dock still shows the old icon after a rebuild, run `touch "build/Am I Artificially Intelligent.app"` or relaunch the Dock.
+
 ## Regenerate the README screenshots
 
 ```bash

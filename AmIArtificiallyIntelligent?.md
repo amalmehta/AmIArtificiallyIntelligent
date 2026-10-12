@@ -77,12 +77,12 @@ Decided without asking:
 - No file input, so the Upload, drag-and-drop and paste rule doesn't apply.
 
 Proposals (not built):
-- A custom app icon.
 - The website version, as its own step.
 - Saving past results and a shareable verdict card.
 
 CHANGELOG:
 
+- 2026-10-11 — added an app icon (half human, half chip, with a "?"), drawn in code by scripts/make-icon.sh
 - 2026-10-11 — built v1: Mac app, 40-question pool (20 per run), four answer formats, local scoring, settings, feedback tab, docs and tests
 - 2026-10-11 — created
 - 2026-09-15 — added meta-instruction: built-out applications include a small feedback tab
