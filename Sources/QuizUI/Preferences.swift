@@ -7,6 +7,16 @@ public enum PrefKey {
     public static let appearance = "appearance"
 }
 
+/// True only in the offline screenshot renderer, which can't draw live text fields.
+private struct StaticRenderKey: EnvironmentKey { static let defaultValue = false }
+
+public extension EnvironmentValues {
+    var isStaticRender: Bool {
+        get { self[StaticRenderKey.self] }
+        set { self[StaticRenderKey.self] = newValue }
+    }
+}
+
 public enum Appearance: String, CaseIterable, Identifiable {
     case system, light, dark
     public var id: String { rawValue }

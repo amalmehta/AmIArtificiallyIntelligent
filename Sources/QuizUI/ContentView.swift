@@ -51,7 +51,7 @@ public struct ContentView: View {
             }
         }
         .sheet(isPresented: $showFeedback) { FeedbackView() }
-        .frame(minWidth: 720, minHeight: 680)
+        .frame(minWidth: 720, minHeight: 740)
     }
 
     private func start() {

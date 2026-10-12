@@ -65,6 +65,7 @@ Asked and answered (2026-10-11):
 - Scoring: local rules, offline. No API key and no network.
 - Length: a pool of about 40 questions, 20 drawn per run (changed mid-build from 10 fixed).
 - Answer formats: a mix of pick one, pick all that apply, 1–5 agree/disagree and short free text.
+- Every choice question has an "Other — write your own" option (requested 2026-10-11).
 - GitHub: local git only for now. No repo created or pushed.
 
 Decided without asking:
@@ -82,6 +83,7 @@ Proposals (not built):
 
 CHANGELOG:
 
+- 2026-10-11 — added "Other — write your own" to every choice question, scored like typed answers
 - 2026-10-11 — added an app icon (half human, half chip, with a "?"), drawn in code by scripts/make-icon.sh
 - 2026-10-11 — built v1: Mac app, 40-question pool (20 per run), four answer formats, local scoring, settings, feedback tab, docs and tests
 - 2026-10-11 — created

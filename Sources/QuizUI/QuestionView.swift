@@ -10,9 +10,13 @@ public struct QuestionView: View {
 
     @State private var selected: Set<String>
     @State private var text: String
+    @State private var otherOpen: Bool
+    @State private var writeIn: String
     @State private var submitted = false
     @FocusState private var textFocused: Bool
+    @FocusState private var writeInFocused: Bool
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.isStaticRender) private var isStaticRender
 
     /// - Parameter prefill: pre-selects an answer without submitting it (used for screenshots).
     public init(question: Question, index: Int, total: Int, prefill: Response? = nil, onAnswer: @escaping (Response) -> Void) {
@@ -20,11 +24,17 @@ public struct QuestionView: View {
         self.index = index
         self.total = total
         self.onAnswer = onAnswer
+        var ids: Set<String> = []
+        var typed: String?
         switch prefill {
-        case .choices(let ids): _selected = State(initialValue: ids)
-        case .choice(let id): _selected = State(initialValue: [id])
-        default: _selected = State(initialValue: [])
+        case .choices(let picked, let w): ids = picked; typed = w
+        case .choice(let id): ids = [id]
+        case .writeIn(let w): typed = w
+        default: break
         }
+        _selected = State(initialValue: ids)
+        _otherOpen = State(initialValue: typed != nil)
+        _writeIn = State(initialValue: typed ?? "")
         if case .text(let t) = prefill { _text = State(initialValue: t) } else { _text = State(initialValue: "") }
     }
 
@@ -72,8 +82,19 @@ public struct QuestionView: View {
         case .single(let options):
             VStack(spacing: 10) {
                 ForEach(Array(options.enumerated()), id: \.element.id) { i, option in
-                    ChoiceRow(number: i + 1, text: option.text, style: .single, isSelected: selected.contains(option.id)) {
+                    ChoiceRow(number: i + 1, text: option.text, style: .single, isSelected: selected.contains(option.id),
+                              shortcutsOn: !otherOpen) {
                         submit(.choice(option.id))
+                    }
+                }
+                otherRow(number: options.count + 1, style: .single)
+                if otherOpen {
+                    writeInField(p, onSubmit: submitSingleWriteIn)
+                    HStack {
+                        Spacer()
+                        Button("Continue", action: submitSingleWriteIn)
+                            .buttonStyle(PillButtonStyle(color: trimmedWriteIn.isEmpty ? p.border : p.accent))
+                            .disabled(trimmedWriteIn.isEmpty)
                     }
                 }
             }
@@ -81,15 +102,20 @@ public struct QuestionView: View {
         case .multiple(let options):
             VStack(spacing: 8) {
                 ForEach(Array(options.enumerated()), id: \.element.id) { i, option in
-                    ChoiceRow(number: i + 1, text: option.text, style: .checkbox, isSelected: selected.contains(option.id)) {
+                    ChoiceRow(number: i + 1, text: option.text, style: .checkbox, isSelected: selected.contains(option.id),
+                              shortcutsOn: !otherOpen) {
                         if selected.contains(option.id) { selected.remove(option.id) } else { selected.insert(option.id) }
                     }
                 }
+                otherRow(number: options.count + 1, style: .checkbox)
+                if otherOpen {
+                    writeInField(p, onSubmit: submitMultiple)
+                }
                 HStack {
                     Spacer()
-                    Button("Continue") { submit(.choices(selected)) }
-                        .buttonStyle(PillButtonStyle(color: selected.isEmpty ? p.border : p.accent))
-                        .disabled(selected.isEmpty)
+                    Button("Continue", action: submitMultiple)
+                        .buttonStyle(PillButtonStyle(color: canSubmitMultiple ? p.accent : p.border))
+                        .disabled(!canSubmitMultiple)
                         .keyboardShortcut(.defaultAction)
                 }
                 .padding(.top, 6)
@@ -123,6 +149,47 @@ public struct QuestionView: View {
     }
 
     private var trimmed: String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var trimmedWriteIn: String { otherOpen ? writeIn.trimmingCharacters(in: .whitespacesAndNewlines) : "" }
+    private var canSubmitMultiple: Bool { !selected.isEmpty || !trimmedWriteIn.isEmpty }
+
+    /// "Other — write your own…" row, which opens a text box for the person's own answer.
+    private func otherRow(number: Int, style: ChoiceRow.Style) -> some View {
+        ChoiceRow(number: number, text: "Other — none of these fit, I'll write my own…", style: style,
+                  isSelected: otherOpen, shortcutsOn: !otherOpen, italic: true) {
+            otherOpen.toggle()
+            writeInFocused = otherOpen
+        }
+    }
+
+    private func writeInField(_ p: Palette, onSubmit: @escaping () -> Void) -> some View {
+        Group {
+            if isStaticRender {
+                Text(writeIn).frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                TextField("Your own answer…", text: $writeIn, axis: .vertical)
+                    .textFieldStyle(.plain)
+                    .lineLimit(1...4)
+                    .focused($writeInFocused)
+                    .onSubmit(onSubmit)
+            }
+        }
+            .font(.system(size: 15))
+            .foregroundStyle(p.text)
+            .padding(12)
+            .background(RoundedRectangle(cornerRadius: 12).fill(p.card))
+            .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(writeInFocused ? p.accent.opacity(0.7) : p.border))
+            .onAppear { writeInFocused = true }
+    }
+
+    private func submitSingleWriteIn() {
+        guard !trimmedWriteIn.isEmpty else { return }
+        submit(.writeIn(writeIn))
+    }
+
+    private func submitMultiple() {
+        guard canSubmitMultiple else { return }
+        submit(.choices(selected, writeIn: trimmedWriteIn.isEmpty ? nil : writeIn))
+    }
 
     private func submitText() {
         guard !trimmed.isEmpty else { return }
@@ -138,8 +205,12 @@ public struct QuestionView: View {
 
     private var hint: String {
         switch question.format {
-        case .single: "Tip: press 1–\(question.options.count) to answer."
-        case .multiple: "Tip: press 1–\(question.options.count) to tick, then Return to continue."
+        case .single: otherOpen
+            ? "Type your own answer, then press Return."
+            : "Tip: press 1–\(question.options.count) to answer, or \(question.options.count + 1) to write your own."
+        case .multiple: otherOpen
+            ? "Type your own answer and tick anything else that applies, then press Return."
+            : "Tip: press 1–\(question.options.count + 1) to tick, then Return to continue."
         case .scale: "Tip: press 1–5 to answer."
         case .text: "Press Return to continue. Your typing is scored on this Mac only."
         }
@@ -153,9 +224,22 @@ struct ChoiceRow: View {
     let text: String
     let style: Style
     let isSelected: Bool
+    /// Off while a text box is open, so typing digits doesn't press the rows.
+    var shortcutsOn = true
+    var italic = false
     let action: () -> Void
     @State private var hovering = false
     @Environment(\.colorScheme) private var scheme
+
+    init(number: Int, text: String, style: Style, isSelected: Bool, shortcutsOn: Bool = true, italic: Bool = false, action: @escaping () -> Void) {
+        self.number = number
+        self.text = text
+        self.style = style
+        self.isSelected = isSelected
+        self.shortcutsOn = shortcutsOn
+        self.italic = italic
+        self.action = action
+    }
 
     var body: some View {
         let p = Palette.forScheme(scheme)
@@ -173,20 +257,20 @@ struct ChoiceRow: View {
                     .frame(width: 22, height: 22)
                     .background(RoundedRectangle(cornerRadius: 6).fill(p.accent.opacity(0.12)))
                 Text(text)
-                    .font(.system(size: 15))
-                    .foregroundStyle(p.text)
+                    .font(italic ? .system(size: 15).italic() : .system(size: 15))
+                    .foregroundStyle(italic ? p.secondaryText : p.text)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, style == .checkbox ? 9 : 12)
+            .padding(.vertical, style == .checkbox ? 8 : 11)
             .background(RoundedRectangle(cornerRadius: 12).fill(isSelected ? p.accent.opacity(0.10) : (hovering ? p.cardHover : p.card)))
             .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(highlighted ? p.accent.opacity(0.6) : p.border))
             .contentShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
-        .keyboardShortcut(KeyEquivalent(Character("\(number)")), modifiers: [])
+        .keyboardShortcut(shortcutsOn ? KeyboardShortcut(KeyEquivalent(Character("\(number)")), modifiers: []) : nil)
         .onHover { hovering = $0 }
     }
 }
