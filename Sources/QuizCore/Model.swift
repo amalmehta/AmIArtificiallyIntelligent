@@ -101,9 +101,27 @@ public enum Format: Hashable, Sendable {
 /// What someone answered.
 public enum Response: Hashable, Sendable {
     case choice(String)
-    case choices(Set<String>)
+    /// A pick-one question answered with the person's own words instead of an option.
+    case writeIn(String)
+    /// Ticked options on a pick-all-that-apply question, plus an optional write-in of their own.
+    case choices(Set<String>, writeIn: String? = nil)
     case scale(Int)
     case text(String)
+
+    /// True when the person typed something, so answer speed means nothing.
+    public var isTyped: Bool {
+        switch self {
+        case .writeIn, .text: true
+        case .choices(_, let w): Response.clean(w) != nil
+        case .choice, .scale: false
+        }
+    }
+
+    /// Trimmed text, or nil if blank.
+    static func clean(_ text: String?) -> String? {
+        guard let t = text?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty else { return nil }
+        return t
+    }
 }
 
 public enum ScaleLabels {
@@ -138,12 +156,18 @@ public struct Question: Identifiable, Hashable, Sendable {
         switch (format, response) {
         case (.single, .choice(let id)):
             return option(withID: id).map { Double($0.aiWeight) }
-        case (.multiple(let opts), .choices(let ids)):
-            guard !ids.isEmpty, ids.allSatisfy({ option(withID: $0) != nil }) else { return nil }
+        case (.single, .writeIn(let text)):
+            return Response.clean(text).map(TextScorer.score)
+        case (.multiple(let opts), .choices(let ids, let writeIn)):
+            let typed = Response.clean(writeIn)
+            guard !ids.isEmpty || typed != nil, ids.allSatisfy({ option(withID: $0) != nil }) else { return nil }
+            let typedPoints = typed.map(TextScorer.score)
+            guard !ids.isEmpty else { return typedPoints }
             let possible = opts.reduce(0) { $0 + $1.aiWeight }
-            guard possible > 0 else { return 0 }
             let picked = opts.filter { ids.contains($0.id) }.reduce(0) { $0 + $1.aiWeight }
-            return Question.maxPoints * Double(picked) / Double(possible)
+            let tickedPoints = possible > 0 ? Question.maxPoints * Double(picked) / Double(possible) : 0
+            // Ticks and a write-in count equally.
+            return typedPoints.map { (tickedPoints + $0) / 2 } ?? tickedPoints
         case (.scale(let machineAgrees), .scale(let value)):
             guard (1...5).contains(value) else { return nil }
             let agreement = Double(value - 1) / 4
@@ -161,8 +185,11 @@ public struct Question: Identifiable, Hashable, Sendable {
         switch response {
         case .choice(let id):
             return option(withID: id)?.text ?? ""
-        case .choices(let ids):
-            return options.filter { ids.contains($0.id) }.map(\.text).joined(separator: " · ")
+        case .writeIn(let text):
+            return Response.clean(text) ?? ""
+        case .choices(let ids, let writeIn):
+            let parts = options.filter { ids.contains($0.id) }.map(\.text) + [Response.clean(writeIn)].compactMap { $0 }
+            return parts.joined(separator: " · ")
         case .scale(let value):
             return ScaleLabels.label(value)
         case .text(let text):

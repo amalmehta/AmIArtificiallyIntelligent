@@ -103,6 +103,52 @@ final class PointsTests: XCTestCase {
     }
 }
 
+final class WriteInTests: XCTestCase {
+    private let robotic = "Certainly! As an AI language model, I don't have personal preferences, but it's important to consider various factors."
+
+    func testSingleChoiceWriteInIsScoredAsText() {
+        let q = QuestionBank.all.first { $0.id == "hotdog" }!
+        XCTAssertEqual(q.points(for: .writeIn("lol idk")), 0)
+        XCTAssertGreaterThanOrEqual(q.points(for: .writeIn(robotic))!, 2.5)
+        XCTAssertNil(q.points(for: .writeIn("   ")))
+        XCTAssertEqual(q.describe(.writeIn("  a taco  ")), "a taco")
+    }
+
+    func testWriteInOnlyAllowedOnChoiceQuestions() {
+        let scale = QuestionBank.all.first { $0.format.kind == .scale }!
+        XCTAssertNil(scale.points(for: .writeIn("hi")))
+    }
+
+    func testMultipleWithOnlyAWriteIn() {
+        let q = QuestionBank.all.first { $0.id == "phrases" }!
+        XCTAssertEqual(q.points(for: .choices([], writeIn: "lol idk")), 0)
+        XCTAssertNil(q.points(for: .choices([], writeIn: " ")))
+    }
+
+    func testMultipleWriteInAveragesWithTicks() {
+        let q = QuestionBank.all.first { $0.id == "phrases" }!
+        let allRobotic = Set(q.options.filter { $0.aiWeight > 0 }.map(\.id))
+        // Every robotic box ticked (3) plus a very human write-in (0) → 1.5.
+        XCTAssertEqual(q.points(for: .choices(allRobotic, writeIn: "lol idk")), 1.5)
+        XCTAssertEqual(q.describe(.choices(["d"], writeIn: "meh")), "\u{201C}lol\u{201D} · meh")
+    }
+
+    func testWriteInsNeverCountAsFast() {
+        let q = QuestionBank.all.first { $0.id == "hotdog" }!
+        let m = QuestionBank.all.first { $0.id == "phrases" }!
+        let a = [Answer(questionID: q.id, response: .writeIn("nope"), seconds: 0.2),
+                 Answer(questionID: m.id, response: .choices(["c"], writeIn: "eh"), seconds: 0.2)]
+        let r = Scorer.score(answers: a, questions: QuestionBank.all, speedThreshold: 1.5)
+        XCTAssertEqual(r.lightningAnswers, 0)
+    }
+
+    func testSessionAcceptsAWriteIn() {
+        var s = QuizSession(questions: [QuestionBank.all.first { $0.id == "hotdog" }!])
+        s.answer(.writeIn("A taco is a hot dog's cousin."), seconds: 6)
+        XCTAssertTrue(s.isFinished)
+    }
+}
+
 final class TextScorerTests: XCTestCase {
     func testChatbotTextScoresHigh() {
         let s = TextScorer.score("Certainly! As an AI language model, I don't have personal preferences, but it's important to consider various factors.")

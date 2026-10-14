@@ -1,3 +1,5 @@
+<img src="docs/images/icon.png" width="128" alt="App icon: half human head, half computer chip">
+
 # Am I Artificially Intelligent?
 
 A Mac app with a playful 20-question quiz that decides whether you're **Actually Intelligent** or **Artificially Intelligent**.

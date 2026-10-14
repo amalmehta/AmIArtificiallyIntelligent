@@ -64,8 +64,9 @@ public enum Scorer {
     public static let defaultSpeedThreshold: Double = 1.5
 
     /// Scores a set of answers. Every question is worth 0–3 points.
-    /// - Parameter speedThreshold: when non-nil, each non-text answer faster than this adds one extra point,
-    ///   and that question's maximum grows by one so the scale stays 0–100. Typed answers are never "fast".
+    /// - Parameter speedThreshold: when non-nil, each clicked answer faster than this adds one extra point,
+    ///   and that question's maximum grows by one so the scale stays 0–100. Typed answers (free text and
+    ///   write-ins) are never "fast".
     public static func score(answers: [Answer], questions: [Question], speedThreshold: Double?) -> QuizResult {
         let byID = Dictionary(uniqueKeysWithValues: questions.map { ($0.id, $0) })
 
@@ -81,7 +82,7 @@ public enum Scorer {
                   let base = question.points(for: answer.response) else { continue }
             var points = base
             var questionMax = Question.maxPoints
-            if let threshold = speedThreshold, question.format.kind != .text {
+            if let threshold = speedThreshold, !answer.response.isTyped {
                 questionMax += 1
                 if answer.seconds < threshold {
                     points += 1

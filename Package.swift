@@ -12,6 +12,7 @@ let package = Package(
         .target(name: "QuizUI", dependencies: ["QuizCore"]),
         .executableTarget(name: "AmIArtificiallyIntelligent", dependencies: ["QuizUI"]),
         .executableTarget(name: "ScreenshotRenderer", dependencies: ["QuizUI", "QuizCore"]),
+        .executableTarget(name: "IconRenderer"),
         .testTarget(name: "QuizCoreTests", dependencies: ["QuizCore"]),
     ]
 )

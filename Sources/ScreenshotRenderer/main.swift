@@ -14,6 +14,7 @@ func render<V: View>(_ view: V, scheme: ColorScheme, name: String, size: CGSize 
     let framed = ZStack { p.background; view }
         .frame(width: size.width, height: size.height)
         .environment(\.colorScheme, scheme)
+        .environment(\.isStaticRender, true)
     let renderer = ImageRenderer(content: framed)
     renderer.scale = 2
     guard let image = renderer.nsImage,
@@ -35,19 +36,19 @@ try MainActor.assumeIsolated {
         ("hotdog", .choice("d")), ("toast", .choice("a")), ("monday", .choice("a")), ("weekend", .choice("d")),
         ("batball", .choice("c")), ("captcha", .choice("a")), ("roses", .choice("b")), ("strawberry", .choice("c")),
         ("fine", .choice("a")), ("what", .choice("a")),
-        ("phrases", .choices(["a", "d"])), ("texting", .choices(["a", "e"])), ("bands", .choices(["b", "c"])), ("cry", .choices(["b"])),
+        ("phrases", .choices(["a", "d"], writeIn: "Bold of you to assume I talk to people.")), ("texting", .choices(["a", "e"])), ("bands", .choices(["b", "c"])), ("cry", .choices(["b"])),
         ("commercials", .scale(4)), ("twosides", .scale(4)), ("glassdoor", .scale(5)), ("multiply", .scale(1)),
         ("socks", .text("my left sock has trust issues")), ("sunday", .text("Brunch, a long walk, and an early night.")),
     ]
     let questions = picks.map { q($0.0) }
     let answers = picks.map { Answer(questionID: $0.0, response: $0.1, seconds: 4) }
     let result = Scorer.score(answers: answers, questions: questions, speedThreshold: Scorer.defaultSpeedThreshold)
-    let size = CGSize(width: 720, height: 680)
+    let size = CGSize(width: 720, height: 740)
 
     for scheme in [ColorScheme.light, .dark] {
         let suffix = scheme == .dark ? "dark" : "light"
         try render(WelcomeView(onStart: {}), scheme: scheme, name: "welcome-\(suffix)", size: size)
-        try render(QuestionView(question: q("phrases"), index: 6, total: 20, prefill: .choices(["a", "d"]), onAnswer: { _ in }),
+        try render(QuestionView(question: q("phrases"), index: 6, total: 20, prefill: .choices(["a", "d"], writeIn: "\u{201C}Bold of you to assume I talk to people.\u{201D}"), onAnswer: { _ in }),
                    scheme: scheme, name: "question-multiple-\(suffix)", size: size)
         try render(QuestionView(question: q("commercials"), index: 11, total: 20, onAnswer: { _ in }),
                    scheme: scheme, name: "question-scale-\(suffix)", size: size)
