@@ -6,7 +6,7 @@ Am I Artificially Intelligent? is a playful Mac quiz. It asks you 20 questions a
 ## Build history
 
 ```mermaid
-flowchart LR
+flowchart TD
     idea["Idea: a brief questionnaire to tell if I'm artificially or actually intelligent"]
     spec["Spec: deliverable is a Mac app tool"]
     v1["v1 quiz app, 2026-10-11"]
